@@ -8,10 +8,26 @@
 
 // Include GD and cocos2d classes before this
 
+#ifdef UIBUILDER_USE_CUSTOM_FUNCTION
+# include <std23/move_only_function.h>
+# include <std23/function_ref.h>
+#endif
 
 namespace uibuilder {
 	using namespace cocos2d;
 	using namespace cocos2d::extension;
+
+#ifdef UIBUILDER_USE_CUSTOM_FUNCTION
+	template <typename F>
+	using function = std23::move_only_function<F>;
+	template <typename F>
+	using function_ref = std23::function_ref<F>;
+#else
+	template <typename F>
+	using function = std::function<F>;
+	template <typename F>
+	using function_ref = std::function<F>;
+#endif
 
 	template <typename T> requires (std::derived_from<T, CCObject>)
 	class Build;
@@ -38,18 +54,18 @@ namespace uibuilder {
 
 	template <typename T>
 	class BuildCallback : public CCNode {
-		std::function<void(T*)> m_callback;
+		function<void(T*)> m_callback;
 	 public:
-	 	static BuildCallback* create(std::function<void(T*)> cb) {
+	 	static BuildCallback* create(function<void(T*)> cb) {
 	 		auto bc = new BuildCallback;
 
-	 		if (bc && bc->init()) {
+	 		if (bc->init()) {
 	 			bc->autorelease();
-	 			bc->m_callback = cb;
+	 			bc->m_callback = std::move(cb);
 	 			return bc;
 	 		}
 
-	 		CC_SAFE_DELETE(bc);
+	 		delete bc;
 	 		return nullptr;
 	 	}
 
@@ -59,18 +75,18 @@ namespace uibuilder {
 	};
 
 	class BuildSchedule : public CCNode {
-		std::function<void(float)> m_callback;
+		function<void(float)> m_callback;
 	 public:
-	 	inline static BuildSchedule* create(std::function<void(float)> cb) {
+	 	inline static BuildSchedule* create(function<void(float)> cb) {
 	 		auto bu = new BuildSchedule;
 
-	 		if (bu && bu->init()) {
+	 		if (bu->init()) {
 	 			bu->autorelease();
-	 			bu->m_callback = cb;
+	 			bu->m_callback = std::move(cb);
 	 			return bu;
 	 		}
 
-	 		CC_SAFE_DELETE(bu);
+	 		delete bu;
 	 		return nullptr;
 	 	}
 
@@ -149,7 +165,7 @@ namespace uibuilder {
 			return Build<U>(m_item->objectAtIndex(index));
 		}
 
-		Build<T> with(std::function<void(T*)> fn) {
+		Build<T> with(auto&& fn) {
 			fn(m_item);
 			return *this;
 		}
@@ -160,7 +176,7 @@ namespace uibuilder {
 		}
 
 		template <typename U, needs_base(CCArray)>
-		Build<T> forEach(std::function<void(U*)> iter) {
+		Build<T> forEach(auto&& iter) requires std::is_invocable_v<decltype(iter), U*> {
 			for (unsigned int i = 0; i < m_item->count(); ++i) {
 				iter(static_cast<U*>(m_item->objectAtIndex(i)));
 			}
@@ -305,7 +321,7 @@ namespace uibuilder {
 		}
 
 		template <needs_base(CCNode), typename U>
-		Build<T> iterChildren(std::function<void(U*)> iter) {
+		Build<T> iterChildren(auto&& iter) requires std::is_invocable_v<decltype(iter), U*> {
 			for (unsigned int i = 0; i < m_item->getChildrenCount(); ++i) {
 				iter(static_cast<U*>(m_item->getChildren()->objectAtIndex(i)));
 			}
@@ -313,9 +329,9 @@ namespace uibuilder {
 			return *this;
 		}
 
-		template <needs_base(CCNode)>
-		Build<T> schedule(std::function<void(float)> fn, int repeat = -1) {
-			auto node = BuildSchedule::create(fn);
+		template <needs_base(CCNode), typename F>
+		Build<T> schedule(F&& fn, int repeat = -1) {
+			auto node = BuildSchedule::create(std::forward<F>(fn));
 			node->schedule(schedule_selector(BuildSchedule::onSchedule), repeat);
 			m_item->addChild(node);
 			return *this;
@@ -414,8 +430,8 @@ namespace uibuilder {
 
 		// CCMenuItemToggler
 		template <needs_same(CCMenuItemToggler)>
-		static Build<T> createToggle(CCSprite* on, CCSprite* off, std::function<void(CCMenuItemToggler*)> fn) {
-			auto bc = BuildCallback<CCMenuItemToggler>::create(fn);
+		static Build<T> createToggle(CCSprite* on, CCSprite* off, function<void(CCMenuItemToggler*)> fn) {
+			auto bc = BuildCallback<CCMenuItemToggler>::create(std::move(fn));
 
 			return Build<CCMenuItemToggler>::create(
 				on,
@@ -447,8 +463,8 @@ namespace uibuilder {
 		}
 
 		template <needs_base(CCNode)>
-		Build<CCMenuItemSpriteExtra> intoMenuItem(std::function<void(CCMenuItemSpriteExtra*)> fn) {
-			auto bc = BuildCallback<CCMenuItemSpriteExtra>::create(fn);
+		Build<CCMenuItemSpriteExtra> intoMenuItem(function<void(CCMenuItemSpriteExtra*)> fn) {
+			auto bc = BuildCallback<CCMenuItemSpriteExtra>::create(std::move(fn));
 			//m_item->addChild(bc);
 
 			return Build<CCMenuItemSpriteExtra>::create(
@@ -461,8 +477,8 @@ namespace uibuilder {
 
 		// same as intoMenuItem except the callback can be with no args
 		template <needs_base(CCNode)>
-		Build<CCMenuItemSpriteExtra> intoMenuItem(std::function<void()> fn) {
-			auto bc = BuildCallback<CCMenuItemSpriteExtra>::create([fn = std::move(fn)](auto) { fn(); });
+		Build<CCMenuItemSpriteExtra> intoMenuItem(function<void()> fn) {
+			auto bc = BuildCallback<CCMenuItemSpriteExtra>::create([fn = std::move(fn)](auto) mutable { fn(); });
 			//m_item->addChild(bc);
 
 			return Build<CCMenuItemSpriteExtra>::create(
