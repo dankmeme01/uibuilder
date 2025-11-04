@@ -19,6 +19,6 @@
 
 
 #define NLIST(p0, p1, p2, p3, N, ...) N
-#define _CONCAT(a, b) a ## b
-#define CONCAT(a, b) _CONCAT(a, b)
-#define setter(base, name, oldname, ...) CONCAT(setter_, NLIST(5, ##__VA_ARGS__, 3, 2, 1, 0))(base, name, oldname, ##__VA_ARGS__)
+#define UIBUILDER_CONCATX(a, b) a ## b
+#define UIBUILDER_CONCAT(a, b) UIBUILDER_CONCATX(a, b)
+#define setter(base, name, oldname, ...) UIBUILDER_CONCAT(setter_, NLIST(5, ##__VA_ARGS__, 3, 2, 1, 0))(base, name, oldname, ##__VA_ARGS__)
