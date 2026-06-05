@@ -355,6 +355,7 @@ namespace uibuilder {
 		#ifdef GEODE_DLL
 		setter(CCNode, id, setID, std::string const&)
 		setter(CCNode, layout, setLayout, Layout*)
+		setter(CCNode, layoutOptions, setLayoutOptions, LayoutOptions*)
 
 		template <needs_base(CCNode)>
 		Build<T> updateLayout() {
