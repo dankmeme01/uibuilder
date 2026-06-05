@@ -108,8 +108,6 @@ namespace uibuilder {
 	inline std::vector<void*> buildStack;
 	template <typename T>
 	struct Build : BuildExtend<T> {
-		T* m_item;
-	public:
 		using BuildExtend<T>::BuildExtend;
 
 		Build(BuildExtend<T> ext) : BuildExtend<T>(ext) {}
@@ -152,7 +150,7 @@ namespace uibuilder {
 	 		return Build(T::create(args...));
 	 	}
 
-		Build(T* item) : m_item(item) {}
+		Build(T* item) : BuildExtend<T>(item) {}
 
 		T* collect() {return m_item;}
 
