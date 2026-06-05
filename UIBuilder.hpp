@@ -21,8 +21,8 @@ namespace uibuilder {
 	template <typename F>
 	using function_ref = geode::FunctionRef<F>;
 
-	template <typename T> requires (std::derived_from<T, CCObject>)
-	class Build;
+	template <typename T>
+	struct Build;
 
 	template <typename T>
 	struct _remove_build {
@@ -87,13 +87,32 @@ namespace uibuilder {
 	 	}
 	};
 
+	template <typename T> requires (std::derived_from<T, CCObject>)
+	struct BuildBase {
+	protected:
+		T* m_item = nullptr;
+	public:
+		BuildBase() = default;
+	 	BuildBase(T* item) : m_item(item) {}
+	 	T* collect() {return m_item;}
+	};
+
+	// Class for extensions that users can specialize, does nothing on its own
+	template <typename T>
+	struct BuildExtend : BuildBase<T> {
+		using BuildBase<T>::BuildBase;
+	};
+
 	// the thing
 
 	inline std::vector<void*> buildStack;
-	template <typename T> requires (std::derived_from<T, CCObject>)
-	class Build {
+	template <typename T>
+	struct Build : BuildExtend<T> {
 		T* m_item;
-	 public:
+	public:
+		using BuildExtend<T>::BuildExtend;
+
+		Build(BuildExtend<T> ext) : BuildExtend<T>(ext) {}
 
 	 	Build<T> push() {
 	 		buildStack.push_back(m_item);
