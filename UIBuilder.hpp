@@ -5,29 +5,19 @@
 #include <functional>
 #include <vector>
 #include "UIBuildMacros.hpp"
+#include <Geode/utils/function.hpp>
+#include <Geode/ui/Button.hpp>
 
 // Include GD and cocos2d classes before this
-
-#ifdef UIBUILDER_USE_CUSTOM_FUNCTION
-# include <std23/move_only_function.h>
-# include <std23/function_ref.h>
-#endif
 
 namespace uibuilder {
 	using namespace cocos2d;
 	using namespace cocos2d::extension;
 
-#ifdef UIBUILDER_USE_CUSTOM_FUNCTION
 	template <typename F>
-	using function = std23::move_only_function<F>;
+	using function = geode::Function<F>;
 	template <typename F>
-	using function_ref = std23::function_ref<F>;
-#else
-	template <typename F>
-	using function = std::function<F>;
-	template <typename F>
-	using function_ref = std::function<F>;
-#endif
+	using function_ref = geode::FunctionRef<F>;
 
 	template <typename T> requires (std::derived_from<T, CCObject>)
 	class Build;
@@ -428,6 +418,12 @@ namespace uibuilder {
 			return *this;
 		}
 
+		template <needs_base(geode::Button)>
+		Build<T> scaleMult(float p0) {
+			this->m_item->setScaleMultiplier(p0);
+			return *this;
+		}
+
 		// CCMenuItemToggler
 		template <needs_same(CCMenuItemToggler)>
 		static Build<T> createToggle(CCSprite* on, CCSprite* off, function<void(CCMenuItemToggler*)> fn) {
@@ -458,37 +454,24 @@ namespace uibuilder {
 		setter(CCSprite, blendFunc, setBlendFunc, ccBlendFunc)
 
 		template <needs_base(CCNode)>
-		Build<CCMenuItemSpriteExtra> intoMenuItem(CCObject* target, SEL_MenuHandler selector) {
-			return Build<CCMenuItemSpriteExtra>::create(m_item, m_item, target, selector);
+		Build<geode::Button> intoMenuItem(CCObject* target, SEL_MenuHandler selector) {
+			return Build(geode::Button::createWithNode(m_item, [target, selector](auto btn) {
+				(target->*selector)(btn);
+			}));
 		}
 
 		template <needs_base(CCNode)>
-		Build<CCMenuItemSpriteExtra> intoMenuItem(function<void(CCMenuItemSpriteExtra*)> fn) {
-			auto bc = BuildCallback<CCMenuItemSpriteExtra>::create(std::move(fn));
-			//m_item->addChild(bc);
-
-			return Build<CCMenuItemSpriteExtra>::create(
-				m_item,
-				m_item,
-				bc,
-				menu_selector(BuildCallback<CCMenuItemSpriteExtra>::onCallback)
-			).child(bc);
+		Build<geode::Button> intoMenuItem(function<void(geode::Button*)> fn) {
+			return Build<geode::Button>(geode::Button::createWithNode(m_item, std::move(fn)));
 		}
 
 		// same as intoMenuItem except the callback can be with no args
 		template <needs_base(CCNode)>
-		Build<CCMenuItemSpriteExtra> intoMenuItem(function<void()> fn) {
-			auto bc = BuildCallback<CCMenuItemSpriteExtra>::create([fn = std::move(fn)](auto) mutable { fn(); });
-			//m_item->addChild(bc);
-
-			return Build<CCMenuItemSpriteExtra>::create(
-				m_item,
-				m_item,
-				bc,
-				menu_selector(BuildCallback<CCMenuItemSpriteExtra>::onCallback)
-			).child(bc);
+		Build<geode::Button> intoMenuItem(function<void()> fn) {
+			return Build<geode::Button>(geode::Button::createWithNode(m_item, [fn = std::move(fn)](auto) mutable {
+				fn();
+			}));
 		}
-
 
 		// CCLabelProtocol
 		setter(CCLabelProtocol, string, setString, const char*)
