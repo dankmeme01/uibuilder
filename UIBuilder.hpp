@@ -7,12 +7,14 @@
 #include "UIBuildMacros.hpp"
 #include <Geode/utils/function.hpp>
 #include <Geode/ui/Button.hpp>
+#include <Geode/ui/BasedButtonSprite.hpp>
 
 // Include GD and cocos2d classes before this
 
 namespace uibuilder {
 	using namespace cocos2d;
 	using namespace cocos2d::extension;
+	using namespace geode;
 
 	template <typename F>
 	using function = geode::Function<F>;
@@ -118,7 +120,7 @@ namespace uibuilder {
 	 	}
 
 		#ifdef GEODE_PLATFORM_TARGET
-		Build<T> store(geode::Ref<T>& in) {
+		Build<T> store(Ref<T>& in) {
 			in = m_item;
 			return *this;
 		}
@@ -335,7 +337,7 @@ namespace uibuilder {
 		// Geode stuff
 		#ifdef GEODE_DLL
 		setter(CCNode, id, setID, std::string const&)
-		setter(CCNode, layout, setLayout, geode::Layout*)
+		setter(CCNode, layout, setLayout, Layout*)
 
 		template <needs_base(CCNode)>
 		Build<T> updateLayout() {
@@ -418,7 +420,7 @@ namespace uibuilder {
 			return *this;
 		}
 
-		template <needs_base(geode::Button)>
+		template <needs_base(Button)>
 		Build<T> scaleMult(float p0) {
 			this->m_item->setScaleMultiplier(p0);
 			return *this;
@@ -454,23 +456,32 @@ namespace uibuilder {
 		setter(CCSprite, blendFunc, setBlendFunc, ccBlendFunc)
 
 		template <needs_base(CCNode)>
-		Build<geode::Button> intoMenuItem(CCObject* target, SEL_MenuHandler selector) {
-			return Build(geode::Button::createWithNode(m_item, [target, selector](auto btn) {
+		Build<Button> intoMenuItem(CCObject* target, SEL_MenuHandler selector) {
+			return Build(Button::createWithNode(m_item, [target, selector](auto btn) {
 				(target->*selector)(btn);
 			}));
 		}
 
 		template <needs_base(CCNode)>
-		Build<geode::Button> intoMenuItem(function<void(geode::Button*)> fn) {
-			return Build<geode::Button>(geode::Button::createWithNode(m_item, std::move(fn)));
+		Build<Button> intoMenuItem(function<void(Button*)> fn) {
+			return Build<Button>(Button::createWithNode(m_item, std::move(fn)));
 		}
 
 		// same as intoMenuItem except the callback can be with no args
 		template <needs_base(CCNode)>
-		Build<geode::Button> intoMenuItem(function<void()> fn) {
-			return Build<geode::Button>(geode::Button::createWithNode(m_item, [fn = std::move(fn)](auto) mutable {
+		Build<Button> intoMenuItem(function<void()> fn) {
+			return Build<Button>(Button::createWithNode(m_item, [fn = std::move(fn)](auto) mutable {
 				fn();
 			}));
+		}
+
+		// Converters for based button sprites
+		template <needs_base(CCNode)>
+		Build<CircleButtonSprite> intoCircle(
+			CircleBaseColor color = CircleBaseColor::Green,
+			CircleBaseSize size = CircleBaseSize::Medium
+		) {
+			return Build<CircleButtonSprite>::create(m_item, color, size);
 		}
 
 		// CCLabelProtocol
