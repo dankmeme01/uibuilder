@@ -109,6 +109,7 @@ namespace uibuilder {
 	template <typename T>
 	struct Build : BuildExtend<T> {
 		using BuildExtend<T>::BuildExtend;
+		using BuildExtend<T>::m_item;
 
 		Build(BuildExtend<T> ext) : BuildExtend<T>(ext) {}
 
