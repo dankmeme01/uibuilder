@@ -429,6 +429,9 @@ namespace uibuilder {
 		setter(CCMenuItem, enabled, setEnabled, bool)
 		setter(CCMenuItem, target, setTarget, CCObject*, SEL_MenuHandler)
 
+		// Button
+		setter(geode::Button, enabled, setEnabled, bool)
+
 		// CCMenuItemSpriteExtra
 		setter(CCMenuItemSpriteExtra, sizeMult, setSizeMult, float)
 
